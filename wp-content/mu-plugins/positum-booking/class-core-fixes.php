@@ -64,7 +64,9 @@ class Positum_Core_Fixes {
 			'value'    => 0,
 		);
 
-		$request->set_param( 'filter', $filter );
+		// Именно строкой: сам эндпоинт делает json_decode() над этим параметром,
+		// и массив здесь роняет запрос с TypeError.
+		$request->set_param( 'filter', wp_json_encode( $filter ) );
 
 		return $result;
 	}
