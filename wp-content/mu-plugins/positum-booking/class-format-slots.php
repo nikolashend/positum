@@ -25,7 +25,10 @@ class Positum_Format_Slots {
 	public static function init() {
 		// Приоритет 20 — после Positum_Core_Fixes, который отбрасывает обрезанные слоты.
 		add_filter( 'jet-apb/calendar/slots', array( __CLASS__, 'drop_slots_without_format' ), 20, 3 );
-		add_filter( 'rest_post_dispatch', array( __CLASS__, 'decorate_response' ), 10, 3 );
+		// Именно rest_request_after_callbacks, а не rest_post_dispatch:
+		// второй срабатывает только на настоящих HTTP-запросах, и внутренние
+		// вызовы rest_do_request() остались бы без формата.
+		add_filter( 'rest_request_after_callbacks', array( __CLASS__, 'decorate_response' ), 10, 3 );
 	}
 
 	/**
@@ -55,7 +58,7 @@ class Positum_Format_Slots {
 		return $slots;
 	}
 
-	public static function decorate_response( $result, $server, $request ) {
+	public static function decorate_response( $result, $handler, $request ) {
 
 		if ( ! is_object( $request ) || ! ( $result instanceof WP_REST_Response ) ) {
 			return $result;
