@@ -20,6 +20,7 @@ wp-content/themes/*
 !wp-content/mu-plugins/
 wp-content/mu-plugins/*
 !wp-content/mu-plugins/positum-*.php
+!wp-content/mu-plugins/positum-booking/
 
 # ---------------------------------------------------------------------------
 # Никогда и ни при каких условиях (правила ниже перебивают всё, что выше):
