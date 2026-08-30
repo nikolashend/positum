@@ -1,13 +1,13 @@
 <?php
 /**
- * Редактор формата консультаций в карточке специалиста.
+ * Consultation format editor in the specialist's card.
  *
- * Свой метабокс, а не расширение редактора графика JetAppointments: тот
- * построен на Vue-компонентах плагина, и добавить туда поле можно только
- * правкой исходников — ровно то, от чего мы уходим.
+ * A metabox of our own rather than an extension of the JetAppointments
+ * schedule editor: that one is built on the plugin's Vue components, and a
+ * field can only be added there by editing the sources — exactly what we avoid.
  *
- * Метабокс работает и в блочном редакторе: WordPress показывает классические
- * метабоксы под холстом.
+ * The metabox works in the block editor too: WordPress renders classic
+ * metaboxes below the canvas.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -144,8 +144,8 @@ class Positum_Format_Admin {
 				if ( add ) {
 					var day  = add.closest( '.pfs-day' );
 					var rows = day.querySelector( '.pfs-rows' );
-					// Индекс берём из счётчика, а не из длины списка: после удаления
-					// строк длина повторяется и поля начали бы затирать друг друга.
+					// The index comes from a counter, not from the list length: after
+					// a removal lengths repeat and fields would overwrite each other.
 					var next = parseInt( day.dataset.next || rows.children.length, 10 );
 					day.dataset.next = next + 1;
 
@@ -191,9 +191,9 @@ class Positum_Format_Admin {
 			return;
 		}
 
-		// Nonce есть, а интервалов нет — значит их все удалили руками.
-		// Сохранения из быстрого редактирования и REST сюда не доходят:
-		// у них нет нашего nonce, и функция вышла выше.
+		// The nonce is here but no intervals — they were all removed by hand.
+		// Quick edit and REST saves never reach this point: they carry no nonce
+		// of ours, and the function returned above.
 		if ( ! isset( $_POST['positum_format'] ) ) {
 			Positum_Format_Schedule::save( $post_id, array() );
 			return;

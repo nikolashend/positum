@@ -210,6 +210,32 @@ function __modify_appointment_data ( $value, $meta_key, $default_value, $provide
 add_action('wp_head', 'custom_head_function');
 function custom_head_function(){
 ?>
+<!-- Booking conversion tracking.
+     This used to be done only by the PHP check of ?status=success below.
+     The form is now submitted without a reload, so the same conversion is
+     fired from here by booking-submit.js. The identifiers stay in one place. -->
+<script type="text/javascript">
+window.positumTrackBookingSuccess = function ( url ) {
+
+    if ( 'function' === typeof gtag ) {
+        gtag( 'event', 'conversion', { 'send_to': 'AW-10994246297/DOvkCPOJqoQaEJnFu_oo' } );
+    }
+
+    // Metrika counts goals by page views, and with ajax there is no view —
+    // so we report one explicitly.
+    if ( 'function' === typeof ym ) {
+        ym( 95625095, 'hit', url || window.location.href );
+    }
+};
+</script>
+<?php
+// Counters load on the production site only: the dev copy carries the same
+// identifiers, and test bookings would land in the production stats and show
+// up as fake Google Ads conversions.
+if ( 'production' !== wp_get_environment_type() ) {
+	return;
+}
+?>
 <!-- Yandex.Metrika counter -->
 <script type="text/javascript" >
    (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
@@ -239,10 +265,11 @@ function custom_head_function(){
   gtag('config', 'AW-10994246297');
 </script>
 
-<?php if(!empty($_GET['status']) && $_GET['status'] == 'success'){?>
+<?php // Kept for the case when the page is still opened with ?status=success
+if(!empty($_GET['status']) && $_GET['status'] == 'success'){?>
 <script type="text/javascript">
     jQuery(function() {
-        gtag('event', 'conversion', {'send_to': 'AW-10994246297/DOvkCPOJqoQaEJnFu_oo'});
+        window.positumTrackBookingSuccess();
     });
 </script>
 <?php

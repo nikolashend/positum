@@ -1,21 +1,21 @@
 <?php
 /**
- * Формат консультации (очно / онлайн) на уровне интервалов рабочего дня.
+ * Consultation format (in person / online) at the level of working intervals.
  *
- * Зачем отдельное хранилище. В графике JetAppointments интервал — это пара
- * «начало — конец», третьего поля под формат там нет, а расширить его редактор
- * нельзя, не правя плагин. Поэтому формат живёт своей мета-записью у карточки
- * специалиста и накладывается на слоты поверх плагина.
+ * Why a separate store. In the JetAppointments schedule an interval is a
+ * "start — end" pair, there is no third field for the format, and its editor
+ * cannot be extended without editing the plugin. So the format lives in its own
+ * meta on the specialist's card and is applied on top of the plugin.
  *
- * Структура меты positum_format_schedule:
+ * Structure of the positum_format_schedule meta:
  *   [ 'monday' => [ ['from'=>'09:00','to'=>'13:00','format'=>'office'], ... ], ... ]
  *
- * Пустая карта означает «оба формата доступны всегда» — ровно то поведение,
- * которое было до внедрения. Так специалист без настроек ничего не теряет.
+ * An empty map means "both formats are always available" — exactly the
+ * behaviour from before. A specialist without settings loses nothing.
  *
- * О времени. Слоты JetAppointments приходят timestamp-ами, у которых настенное
- * время читается через gmdate(): для графика 15:55 gmdate() даёт 15:55,
- * а wp_date() — 18:55. Поэтому здесь везде gmdate(), это не ошибка.
+ * About time. JetAppointments slots arrive as timestamps whose wall clock is
+ * read with gmdate(): for a 15:55 schedule gmdate() gives 15:55 while wp_date()
+ * gives 18:55. That is why gmdate() is used here, it is not a mistake.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -51,8 +51,8 @@ class Positum_Format_Schedule {
 	}
 
 	/**
-	 * Подпись формата на языке текущей страницы.
-	 * Сайт двуязычный (Polylang), эстонский — основной.
+	 * Format caption in the language of the current page.
+	 * The site is bilingual (Polylang), Estonian is the primary language.
 	 */
 	public static function label( $format ) {
 
@@ -69,7 +69,27 @@ class Positum_Format_Schedule {
 	}
 
 	/**
-	 * Название CPT специалистов берём из настроек плагина, а не хардкодим.
+	 * Caption for the format in the booking details block.
+	 */
+	public static function summary_caption() {
+
+		$lang = function_exists( 'pll_current_language' ) ? pll_current_language() : '';
+
+		return 'ru' === $lang ? 'Формат:' : 'Formaat:';
+	}
+
+	/**
+	 * Heading of the booking summary on the last step.
+	 */
+	public static function summary_title() {
+
+		$lang = function_exists( 'pll_current_language' ) ? pll_current_language() : '';
+
+		return 'ru' === $lang ? 'Ваша бронь' : 'Teie broneering';
+	}
+
+	/**
+	 * The providers CPT name comes from the plugin settings, not hardcoded.
 	 */
 	public static function providers_cpt() {
 
@@ -85,7 +105,7 @@ class Positum_Format_Schedule {
 	}
 
 	/**
-	 * @return array Карта форматов специалиста, приведённая к порядку.
+	 * @return array The specialist's format map, normalised.
 	 */
 	public static function get( $provider ) {
 		return self::normalize( get_post_meta( absint( $provider ), self::META_KEY, true ) );
@@ -118,13 +138,13 @@ class Positum_Format_Schedule {
 	}
 
 	/**
-	 * Форматы, доступные специалисту на отрезке [$from, $to).
+	 * Formats available to the specialist over the [$from, $to) range.
 	 *
-	 * Слот получает формат только если целиком помещается в интервал этого
-	 * формата. Приём, который начался бы в очные часы, а закончился в онлайновые,
-	 * не предлагается ни в одном из форматов — провести его нельзя.
+	 * A slot gets a format only if it fits entirely inside an interval of that
+	 * format. An appointment that would start in the in-person hours and end in
+	 * the online ones is offered in neither — it cannot be held.
 	 *
-	 * @return array Список из self::OFFICE и/или self::ONLINE. Пустой — слот недоступен.
+	 * @return array List of self::OFFICE and/or self::ONLINE. Empty — unavailable.
 	 */
 	public static function formats_for_slot( $provider, $from, $to ) {
 
@@ -143,8 +163,8 @@ class Positum_Format_Schedule {
 		$from_min = self::minutes_of_day( $from );
 		$to_min   = self::minutes_of_day( $to );
 
-		// Слот через полночь не поддерживаем: приёмы столько не длятся,
-		// а поддержка такого случая усложнила бы всё остальное.
+		// Slots crossing midnight are not supported: appointments never run that
+		// long, and supporting it would complicate everything else.
 		if ( $to_min <= $from_min ) {
 			return array();
 		}
@@ -164,10 +184,10 @@ class Positum_Format_Schedule {
 	}
 
 	/**
-	 * Форматы, встречающиеся у специалиста в этот день хоть где-нибудь.
-	 * Нужно для пометок в календаре, чтобы не открывать каждую дату подряд.
+	 * Formats found anywhere in that day for the specialist.
+	 * Used for calendar marks, so that not every date has to be opened.
 	 *
-	 * @param int $date Любой timestamp внутри нужного дня.
+	 * @param int $date Any timestamp inside the day in question.
 	 */
 	public static function formats_for_date( $provider, $date ) {
 
@@ -195,13 +215,13 @@ class Positum_Format_Schedule {
 	}
 
 	/**
-	 * Интервалы одного формата, слитые в непрерывные куски.
-	 * Формат «оба» участвует и в очной, и в онлайновой выборке.
+	 * Intervals of one format merged into continuous ranges.
+	 * The "both" format takes part in the in-person and the online selection.
 	 *
-	 * Слияние нужно, чтобы приём на стыке двух соседних интервалов одного
-	 * формата (09:00–13:00 и 13:00–17:00) не оказался «не помещающимся».
+	 * Merging is needed so that an appointment on the seam of two adjacent
+	 * intervals of the same format (09:00–13:00 and 13:00–17:00) still fits.
 	 *
-	 * @return array Список ['from'=>минуты,'to'=>минуты], упорядоченный.
+	 * @return array List of ['from'=>minutes,'to'=>minutes], ordered.
 	 */
 	private static function merged_intervals( $intervals, $format ) {
 
@@ -245,8 +265,8 @@ class Positum_Format_Schedule {
 	}
 
 	/**
-	 * Приводит что угодно к валидной карте: мусор выбрасывается,
-	 * интервалы внутри дня сортируются по времени начала.
+	 * Normalises anything into a valid map: junk is dropped and the intervals
+	 * inside a day are sorted by start time.
 	 */
 	public static function normalize( $raw ) {
 

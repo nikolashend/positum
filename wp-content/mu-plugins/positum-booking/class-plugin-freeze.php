@@ -1,19 +1,19 @@
 <?php
 /**
- * Заморозка обновлений плагинов, на которых держится бронирование.
+ * Freezing updates of the plugins the booking flow depends on.
  *
- * Зачем. 7 октября 2025 обновление JetAppointments стёрло правки, внесённые
- * в его исходники вручную, и защита от двойных броней перестала работать —
- * молча, без единой ошибки в логе. Сами правки теперь живут в Positum_Core_Fixes
- * и обновлением не стираются, но версию всё равно держим фиксированной:
- * бронирование завязано на внутреннее устройство плагина, и обновляться
- * нужно осознанно, прогнав сценарии записи на dev.
+ * Why. On 7 October 2025 a JetAppointments update wiped the edits that had
+ * been made in its sources by hand, and the protection against double bookings
+ * silently stopped working, without a single error in the log. The edits now
+ * live in Positum_Core_Fixes and survive updates, but the version is still
+ * pinned: the booking flow depends on the plugin internals, and updating must
+ * be deliberate, with the booking scenarios replayed on dev.
  *
- * Как обновиться правильно:
+ * How to update properly:
  *   1. ./scripts/sync-prod-to-dev.sh
- *   2. на dev поднять версию в списке FROZEN, обновить плагин, проверить запись
- *   3. ./scripts/plugins-snapshot.sh — зафиксировать версии
- *   4. выкатить на prod
+ *   2. on dev raise the version in the list below, update, test booking
+ *   3. ./scripts/plugins-snapshot.sh — record the versions
+ *   4. deploy to prod
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -23,9 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Positum_Plugin_Freeze {
 
 	/**
-	 * Плагин => версия, на которой он зафиксирован.
-	 * Версия здесь — не ограничение, а ожидание: если на сайте окажется другая,
-	 * админка об этом скажет.
+	 * Plugin => the version it is pinned to.
+	 * The version here is an expectation rather than a limit: if the site ends up
+	 * with a different one, the admin will say so.
 	 */
 	private static function frozen() {
 		return array(
@@ -41,9 +41,9 @@ class Positum_Plugin_Freeze {
 	}
 
 	/**
-	 * Убирает замороженные плагины из списка доступных обновлений.
-	 * Кнопка «Обновить» просто не появляется — ни на странице плагинов,
-	 * ни в «Консоль → Обновления».
+	 * Removes the frozen plugins from the list of available updates.
+	 * The "Update" button simply does not appear — neither on the plugins page
+	 * nor in Dashboard → Updates.
 	 */
 	public static function hide_updates( $transient ) {
 
@@ -53,9 +53,9 @@ class Positum_Plugin_Freeze {
 
 		foreach ( array_keys( self::frozen() ) as $file ) {
 			if ( isset( $transient->response[ $file ] ) ) {
-				// Переносим в no_update, а не удаляем совсем: так WordPress
-				// продолжает считать плагин известным и не показывает его
-				// как «неизвестного происхождения».
+				// Moved to no_update rather than removed entirely: this way WordPress
+				// still considers the plugin known and does not show it as being
+				// of unknown origin.
 				$transient->no_update[ $file ] = $transient->response[ $file ];
 				unset( $transient->response[ $file ] );
 			}
@@ -76,8 +76,8 @@ class Positum_Plugin_Freeze {
 	}
 
 	/**
-	 * Две заметки в админке: спокойная — что версии зафиксированы,
-	 * и тревожная — если версия всё-таки разъехалась с ожидаемой.
+	 * Two admin notices: a calm one saying the versions are pinned, and an
+	 * alarming one if a version has drifted from what is expected.
 	 */
 	public static function notice() {
 
@@ -114,7 +114,7 @@ class Positum_Plugin_Freeze {
 	}
 
 	/**
-	 * @return array Плагины, чья установленная версия разошлась с ожидаемой.
+	 * @return array Plugins whose installed version differs from the expected.
 	 */
 	private static function mismatched_versions() {
 

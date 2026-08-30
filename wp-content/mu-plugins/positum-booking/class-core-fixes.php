@@ -1,25 +1,25 @@
 <?php
 /**
- * Две правки, которые раньше вносились прямо в исходники JetAppointments
- * и терялись при каждом обновлении плагина. Инструкция по их восстановлению
- * лежала в шапке cron_5346776343.php — и её никто не выполнил после
- * обновления 7 октября 2025.
+ * Two edits that used to be made directly in the JetAppointments sources and
+ * were lost on every plugin update. The instructions for restoring them lived
+ * in the header of cron_5346776343.php — and nobody followed them after the
+ * update on 7 October 2025.
  *
- * Здесь то же самое сделано через хуки: обновление плагина этот файл не трогает.
+ * Here the same is done with hooks: a plugin update does not touch this file.
  *
- * ПРАВКА 1. Технические брони не должны попадать в списки.
- *   Было:  $filter['technical'] = 0;  в includes/db/appointments.php
- *          (после prepare_params, иначе array_filter() выбрасывал ноль)
- *   Стало: тот же фильтр подставляется в REST-запрос списка броней.
+ * EDIT 1. Technical bookings must not appear in the lists.
+ *   Was:  $filter['technical'] = 0;  in includes/db/appointments.php
+ *         (after prepare_params, otherwise array_filter() dropped the zero)
+ *   Now:  the same filter is injected into the REST request for the list.
  *
- * ПРАВКА 2. Слот, не помещающийся до конца приёма, не должен предлагаться.
- *   Было:  break вместо $end = $to;  в includes/time-slots.php
- *   Стало: такие слоты отбрасываются в фильтре jet-apb/calendar/slots.
+ * EDIT 2. A slot that does not fit until the end of the working interval
+ *   must not be offered. Was: break instead of $end = $to; in time-slots.php.
+ *   Now:  such slots are dropped in the jet-apb/calendar/slots filter.
  *
- * Что за технические брони. Кроме двух живых специалистов есть служебный
- * «Iga spetsialist» (ID 1275). Чтобы запись к нему блокировала время у обоих —
- * и наоборот, — cron_5346776343.php создаёт скрытые дубли броней с пометкой
- * technical = 1. В интерфейсе они видны быть не должны.
+ * What technical bookings are. Besides the two real specialists there is a
+ * service one, "Iga spetsialist" (ID 1275). So that booking them blocks the
+ * time for both — and the other way round — cron_5346776343.php creates hidden
+ * duplicate bookings marked technical = 1. They must not be visible in the UI.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -34,14 +34,14 @@ class Positum_Core_Fixes {
 	}
 
 	/**
-	 * ПРАВКА 1.
+	 * EDIT 1.
 	 *
-	 * Дописывает в фильтр запроса условие technical = 0. Эндпоинт использует
-	 * одни и те же параметры и для выборки, и для подсчёта общего числа,
-	 * поэтому постраничная навигация остаётся верной.
+	 * Adds a technical = 0 condition to the request filter. The endpoint uses the
+	 * same parameters both for the query and for the total count, so pagination
+	 * stays correct.
 	 *
-	 * Значение передаём в виде массива с operator: внутри плагина фильтр
-	 * прогоняется через array_filter(), и обычный 0 был бы выброшен как пустой.
+	 * The value is passed as an array with an operator: inside the plugin the
+	 * filter goes through array_filter(), and a plain 0 would be dropped as empty.
 	 */
 	public static function hide_technical_appointments( $result, $server, $request ) {
 
@@ -64,23 +64,23 @@ class Positum_Core_Fixes {
 			'value'    => 0,
 		);
 
-		// Именно строкой: сам эндпоинт делает json_decode() над этим параметром,
-		// и массив здесь роняет запрос с TypeError.
+		// A string on purpose: the endpoint itself runs json_decode() on this
+		// parameter, and an array here kills the request with a TypeError.
 		$request->set_param( 'filter', wp_json_encode( $filter ) );
 
 		return $result;
 	}
 
 	/**
-	 * ПРАВКА 2.
+	 * EDIT 2.
 	 *
-	 * Плагин нарезает день на слоты и, дойдя до конца рабочего интервала,
-	 * обрезает последний слот по этому концу вместо того чтобы его выбросить.
-	 * В результате клиенту предлагается приём короче заявленного — например
-	 * 20 минут вместо 50.
+	 * The plugin slices the day into slots and, reaching the end of the working
+	 * interval, trims the last slot to that end instead of dropping it.
+	 * As a result the client is offered a shorter appointment than advertised —
+	 * 20 minutes instead of 50, for example.
 	 *
-	 * Обрезанный слот узнаётся по длительности: она меньше длительности услуги.
-	 * Отдельно лезть за графиком не нужно.
+	 * A trimmed slot is recognised by its duration: it is shorter than the
+	 * service duration. No need to look the schedule up separately.
 	 */
 	public static function drop_truncated_slots( $slots, $service, $provider ) {
 
@@ -109,8 +109,8 @@ class Positum_Core_Fixes {
 	}
 
 	/**
-	 * Длительность одного приёма для пары услуга/специалист, в секундах.
-	 * Берётся из графика: у специалиста свой, иначе услуги, иначе общий.
+	 * Duration of one appointment for a service/provider pair, in seconds.
+	 * Taken from the schedule: the provider's own, else the service's, else global.
 	 */
 	private static function slot_duration( $service, $provider ) {
 

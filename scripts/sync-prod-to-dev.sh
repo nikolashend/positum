@@ -27,6 +27,12 @@ echo "==> 3/5 загрузки prod -> dev"
 rsync -a --delete --exclude 'wc-logs/' --exclude 'et_temp/' \
   "$PROD/wp-content/uploads/" "$DEV/wp-content/uploads/"
 
+# Elementor keeps generated CSS with absolute URLs, and search-replace only
+# touches the database. Fonts referenced from the production domain are then
+# blocked by CORS on dev and the site falls back to system faces.
+echo "==> 3.5/5 адреса в сгенерированном CSS Elementor"
+find "$DEV/wp-content/uploads/elementor" -name '*.css' -type f   -exec sed -i "s#$PROD_URL#$DEV_URL#g" {} +
+
 echo "==> 4/5 импорт базы и смена адресов"
 wp --path="$DEV" db clean --yes
 wp --path="$DEV" db import "$TMP/prod.sql"

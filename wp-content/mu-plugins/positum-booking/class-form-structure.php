@@ -1,17 +1,17 @@
 <?php
 /**
- * Три типа консультации вместо шести услуг.
+ * Three consultation types instead of six services.
  *
- * На сайте шесть услуг: каждый тип заведён дважды — очной версией и онлайновой.
- * По ТЗ клиент выбирает тип (три варианта), а формат — уже в календаре.
+ * The site has six services: every type exists twice, in person and online.
+ * Per the spec the client picks a type, and the format later in the calendar.
  *
- * Услуги при этом НЕ сливаются. В списке показываются только очные версии —
- * они играют роль «типа». Когда клиент выбирает формат у слота, при отправке
- * подставляется парная услуга. Так не нужна миграция: прошлые брони, цены
- * и отчётность остаются как есть.
+ * The services are NOT merged. The list shows only the in-person versions —
+ * they play the role of the type. When the client picks a format on a slot,
+ * the paired service is substituted on submit. No migration is needed: past
+ * bookings, prices and reporting stay as they are.
  *
- * Длительности внутри пары совпадают (50/30/80 минут, буфер 10 минут),
- * поэтому подмена не меняет ни границы слота, ни занятость.
+ * Durations inside a pair match (50/30/80 minutes, 10 minute buffer), so the
+ * substitution changes neither the slot boundaries nor availability.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -20,17 +20,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Positum_Form_Structure {
 
-	/** Имя скрытого поля формы, в котором приезжает выбранный формат. */
+	/** Name of the hidden form field that carries the chosen format. */
 	const FORMAT_FIELD = 'cons_place';
 
-	/** Формы бронирования: русская и эстонская. */
+	/** Booking forms: Russian and Estonian. */
 	public static function form_ids() {
 		return array( 1055, 2026 );
 	}
 
 	/**
-	 * Пары услуг: очная версия => онлайновая.
-	 * Очная считается основной — именно она показывается как тип консультации.
+	 * Service pairs: in-person version => online one.
+	 * The in-person one is primary — it is the one shown as the consultation type.
 	 */
 	public static function pairs() {
 		return array(
@@ -41,11 +41,11 @@ class Positum_Form_Structure {
 	}
 
 	/**
-	 * Место консультации — то, что клиент увидит в письме строкой
-	 * «Место консультации: …». Раньше это подставляла условная логика формы
-	 * по выбранной категории; после удаления первого шага её некому запускать,
-	 * поэтому подставляем сами. Тексты сохранены дословно, чтобы письма
-	 * читались ровно как раньше.
+	 * Consultation place — what the client sees in the email as the line
+	 * "Место консультации: …". It used to be filled by the conditional logic of
+	 * the form based on the chosen category; after the first step was removed
+	 * there is nobody left to run it, so we substitute it ourselves. The texts
+	 * are kept verbatim so the emails read exactly as before.
 	 */
 	public static function places() {
 		return array(
@@ -67,10 +67,10 @@ class Positum_Form_Structure {
 	}
 
 	/**
-	 * Кэш отрендеренной формы хранится в мете и обходит все фильтры рендера —
-	 * список услуг из него берётся тот, что был на момент первой отрисовки.
-	 * Для двух форм бронирования кэш отключаем: формы небольшие, а цена ошибки
-	 * велика — клиент увидел бы неактуальный набор услуг.
+	 * The rendered form cache is stored in a meta and bypasses every render
+	 * filter — the service list in it is the one from the very first render.
+	 * For the two booking forms the cache is disabled: the forms are small and
+	 * the cost of a mistake is high — the client would see a stale service list.
 	 */
 	public static function disable_cache( $cache, $form_id ) {
 
@@ -82,7 +82,7 @@ class Positum_Form_Structure {
 	}
 
 	/**
-	 * Оставляет в списке услуг только очные версии — три типа консультации.
+	 * Leaves only the in-person versions in the service list — three types.
 	 */
 	public static function only_three_types( $options, $args ) {
 
@@ -104,18 +104,18 @@ class Positum_Form_Structure {
 			}
 		}
 
-		// Если ни одна из ожидаемых услуг не нашлась, значит состав услуг
-		// изменился. Тогда лучше показать всё, чем пустой шаг.
+		// If none of the expected services was found, the service set has
+		// changed. Better to show everything than an empty step.
 		return $kept ? $kept : $options;
 	}
 
 	/**
-	 * Разбирает выбранный формат: подставляет парную услугу для онлайна
-	 * и превращает служебный код в место консультации для письма.
+	 * Resolves the chosen format: substitutes the paired service for online and
+	 * turns the internal code into the consultation place for the email.
 	 *
-	 * В скрытое поле скрипт кладёт код (office/online) — по нему удобно
-	 * принимать решения. Наружу же должно уйти человекочитаемое место,
-	 * поэтому здесь код заменяется на адрес или название платформы.
+	 * The script puts a code (office/online) into the hidden field — convenient
+	 * for decisions. What goes out, though, must be a human readable place, so
+	 * here the code is replaced with an address or a platform name.
 	 */
 	public static function apply_chosen_format( $data, $form, $fields ) {
 
@@ -126,8 +126,8 @@ class Positum_Form_Structure {
 		$format = isset( $data[ self::FORMAT_FIELD ] ) ? trim( (string) $data[ self::FORMAT_FIELD ] ) : '';
 
 		if ( ! in_array( $format, array( Positum_Format_Schedule::OFFICE, Positum_Format_Schedule::ONLINE ), true ) ) {
-			// Формат не пришёл — значит слот был доступен в единственном формате
-			// и он уже заложен в самой услуге. Ничего не трогаем.
+			// No format arrived — the slot was available in a single format and
+			// that is already baked into the service itself. Leave it alone.
 			return $data;
 		}
 
@@ -136,9 +136,50 @@ class Positum_Form_Structure {
 
 		if ( Positum_Format_Schedule::ONLINE === $format && isset( $pairs[ $service ] ) ) {
 			$data['service_id'] = (string) $pairs[ $service ];
+			$data                = self::swap_service_in_slots( $data, $service, $pairs[ $service ] );
 		}
 
 		$data[ self::FORMAT_FIELD ] = self::place_text( $format, self::form_id_of( $data, $form ) );
+
+		return $data;
+	}
+
+	/**
+	 * Replaces the service inside the picked slots.
+	 *
+	 * A booking is created from the payload of the date field rather than from
+	 * service_id: it holds an array of picked slots, each with its own service
+	 * and provider. Fixing service_id alone still books the in-person service.
+	 */
+	private static function swap_service_in_slots( $data, $from, $to ) {
+
+		if ( empty( $data['appointment_date'] ) || ! is_string( $data['appointment_date'] ) ) {
+			return $data;
+		}
+
+		$raw     = $data['appointment_date'];
+		$slots   = json_decode( $raw, true );
+		$slashed = false;
+
+		// The value may arrive escaped — handle both shapes.
+		if ( ! is_array( $slots ) ) {
+			$slots   = json_decode( stripslashes( $raw ), true );
+			$slashed = true;
+		}
+
+		if ( ! is_array( $slots ) ) {
+			return $data;
+		}
+
+		foreach ( $slots as $index => $slot ) {
+			if ( isset( $slot['service'] ) && absint( $slot['service'] ) === $from ) {
+				$slots[ $index ]['service'] = $to;
+			}
+		}
+
+		$encoded = wp_json_encode( $slots );
+
+		$data['appointment_date'] = $slashed ? addslashes( $encoded ) : $encoded;
 
 		return $data;
 	}
@@ -152,8 +193,8 @@ class Positum_Form_Structure {
 	}
 
 	/**
-	 * Язык письма определяется формой, а не текущим языком страницы:
-	 * отправка идёт через общий обработчик, где Polylang уже не у дел.
+	 * The email language is decided by the form, not by the current page
+	 * language: the submit goes through a shared handler where Polylang is out.
 	 */
 	private static function form_id_of( $data, $form ) {
 
@@ -169,7 +210,7 @@ class Positum_Form_Structure {
 	}
 
 	/**
-	 * @return string office|online|'' — формат услуги по её принадлежности к паре.
+	 * @return string office|online|'' — service format by its place in a pair.
 	 */
 	public static function format_of_service( $service ) {
 

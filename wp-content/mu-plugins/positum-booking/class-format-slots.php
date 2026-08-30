@@ -1,19 +1,21 @@
 <?php
 /**
- * Проброс формата консультации в календарь: доступность слотов и разметка.
+ * Bringing the consultation format into the calendar: availability and markup.
  *
- * Три вещи:
- *   1. Слот, для которого не остаётся ни одного формата, вообще не предлагается.
- *      Плагин сам пометит такой день как недоступный, если слотов не осталось.
- *   2. К каждому слоту в ответе добавляется формат — атрибутом data-formats
- *      и, если формат единственный, видимой пометкой рядом со временем.
- *   3. К ответу со списком дат добавляется карта форматов по дням недели,
- *      чтобы календарь мог помечать даты, не открывая каждую.
+ * Three things:
+ *   1. A slot left with no format at all is not offered.
+ *      The plugin marks such a day unavailable once no slots remain.
+ *   2. Every slot in the response gets the format — a data-formats attribute
+ *      and a modifier class. Captions are drawn by the front-end script:
+ *      slots arrive over REST, where Polylang no longer knows the page
+ *      language, and the server would put Estonian captions on a Russian page.
+ *   3. The date list response gets a map of formats by weekday, so the
+ *      calendar can mark dates without opening each one.
  *
- * Почему разметка правится в ответе REST, а не при генерации. Плагин собирает
- * HTML слотов сам, и формат строки времени берётся один раз на весь список —
- * повлиять на отдельный слот через фильтры нельзя. Разметка слота при этом
- * простая и предсказуемая: <div class="jet-apb-slot ..." data-slot="…">.
+ * Why the markup is patched in the REST response rather than at generation.
+ * The plugin builds the slot HTML itself, and the time string format is taken
+ * once for the whole list — a single slot cannot be affected through filters.
+ * The slot markup is simple and predictable: <div class="jet-apb-slot ..." data-slot="…">.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -23,16 +25,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Positum_Format_Slots {
 
 	public static function init() {
-		// Приоритет 20 — после Positum_Core_Fixes, который отбрасывает обрезанные слоты.
+		// Priority 20 — after Positum_Core_Fixes, which drops trimmed slots.
 		add_filter( 'jet-apb/calendar/slots', array( __CLASS__, 'drop_slots_without_format' ), 20, 3 );
-		// Именно rest_request_after_callbacks, а не rest_post_dispatch:
-		// второй срабатывает только на настоящих HTTP-запросах, и внутренние
-		// вызовы rest_do_request() остались бы без формата.
+		// rest_request_after_callbacks rather than rest_post_dispatch:
+		// the latter only fires on real HTTP requests, and internal
+		// rest_do_request() calls would be left without the format.
 		add_filter( 'rest_request_after_callbacks', array( __CLASS__, 'decorate_response' ), 10, 3 );
 	}
 
 	/**
-	 * Убирает слоты, которые нельзя провести ни очно, ни онлайн.
+	 * Drops slots that can be held neither in person nor online.
 	 */
 	public static function drop_slots_without_format( $slots, $service, $provider ) {
 
@@ -78,8 +80,8 @@ class Positum_Format_Slots {
 	}
 
 	/**
-	 * Добавляет формат к слотам. Витрина получает HTML, админка — массив;
-	 * поддерживаем оба вида ответа.
+	 * Adds the format to the slots. The front end gets HTML, the admin an array;
+	 * both response shapes are supported.
 	 */
 	private static function decorate_slots( $result, $request ) {
 
@@ -122,8 +124,8 @@ class Positum_Format_Slots {
 	}
 
 	/**
-	 * Дописывает в разметку слота data-formats, класс-модификатор и,
-	 * если формат единственный, пометку рядом со временем.
+	 * Adds data-formats and a modifier class to the slot markup.
+	 * The caption text is deliberately not set here — see the note on language.
 	 */
 	private static function decorate_slots_html( $html, $provider ) {
 
@@ -141,36 +143,27 @@ class Positum_Format_Slots {
 				);
 
 				if ( ! $formats ) {
-					// Досюда доходить не должно — такие слоты отброшены раньше.
-					// Но если дошло, показывать их клиенту нельзя.
+					// Should never get here — such slots were dropped earlier.
+					// But if it did, they must not be shown to the client.
 					return '';
 				}
 
 				$mods = $match['mods'];
-				$badge = '';
 
 				foreach ( $formats as $format ) {
 					$mods .= ' jet-apb-slot--' . $format;
 				}
 
-				if ( 1 === count( $formats ) ) {
-					$mods .= ' jet-apb-slot--single-format';
-					$badge = sprintf(
-						' <span class="positum-slot-format positum-slot-format--%1$s">%2$s</span>',
-						esc_attr( $formats[0] ),
-						esc_html( Positum_Format_Schedule::label( $formats[0] ) )
-					);
-				} else {
-					$mods .= ' jet-apb-slot--both-formats';
-				}
+				$mods .= 1 === count( $formats )
+					? ' jet-apb-slot--single-format'
+					: ' jet-apb-slot--both-formats';
 
 				return sprintf(
-					'<div class="jet-apb-slot%1$s"%2$s data-formats="%3$s">%4$s%5$s</div>',
+					'<div class="jet-apb-slot%1$s"%2$s data-formats="%3$s">%4$s</div>',
 					$mods,
 					$match['attrs'],
 					esc_attr( implode( ',', $formats ) ),
-					$match['inner'],
-					$badge
+					$match['inner']
 				);
 			},
 			$html
@@ -178,8 +171,8 @@ class Positum_Format_Slots {
 	}
 
 	/**
-	 * Добавляет к ответу со списком дат карту форматов по дням недели.
-	 * Календарь берёт её, чтобы помечать даты, не запрашивая слоты каждой.
+	 * Adds a map of formats by weekday to the date list response.
+	 * The calendar uses it to mark dates without requesting slots for each.
 	 */
 	private static function decorate_dates( $result, $request ) {
 

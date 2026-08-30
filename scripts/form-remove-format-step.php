@@ -1,19 +1,19 @@
 <?php
 /**
- * Убирает из форм бронирования первый шаг «онлайн / очно».
+ * Removes the first "online / in person" step from the booking forms.
  *
- * Структура формы хранится в базе, а база из dev в prod не льётся — поэтому
- * изменение оформлено скриптом: он лежит в git и одинаково применяется
- * в любой среде.
+ * The form structure lives in the database, and the database is never pushed
+ * from dev to prod — so the change is a script: it sits in git and applies
+ * the same way in any environment.
  *
- * Запуск:
- *   wp eval-file scripts/form-remove-format-step.php            — применить
- *   wp eval-file scripts/form-remove-format-step.php revert     — вернуть как было
- *   wp eval-file scripts/form-remove-format-step.php dry-run    — показать, что будет
+ * Usage:
+ *   wp eval-file scripts/form-remove-format-step.php            — apply
+ *   wp eval-file scripts/form-remove-format-step.php revert     — restore
+ *   wp eval-file scripts/form-remove-format-step.php dry-run    — preview only
  *
- * Скрипт идемпотентен: повторный запуск ничего не ломает.
- * Перед первой правкой исходная структура сохраняется в отдельную мету,
- * поэтому откат возможен всегда.
+ * The script is idempotent: running it again breaks nothing.
+ * Before the first edit the original structure is stored in a separate meta,
+ * so a revert is always possible.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -33,7 +33,7 @@ if ( ! class_exists( 'Positum_Form_Structure' ) ) {
 const POSITUM_FORM_BACKUP_META = '_form_data_positum_backup';
 
 /**
- * @return array Список полей формы с разбивкой по страницам, для отчёта.
+ * @return array Form fields grouped by page, for the report.
  */
 function positum_form_outline( $items ) {
 
@@ -111,7 +111,7 @@ foreach ( Positum_Form_Structure::form_ids() as $form_id ) {
 	WP_CLI::log( "  было:" );
 	WP_CLI::log( implode( "\n", positum_form_outline( $items ) ) );
 
-	// Ищем поле выбора формата и самый первый разделитель страниц.
+	// Find the format field and the very first page break.
 	$format_key = null;
 	$break_key  = null;
 	$break_y    = null;
@@ -161,11 +161,11 @@ foreach ( Positum_Form_Structure::form_ids() as $form_id ) {
 		update_post_meta( $form_id, POSITUM_FORM_BACKUP_META, wp_slash( $raw ) );
 	}
 
-	// Два уровня экранирования — не опечатка. Плагин читает мету через
-	// stripslashes(), то есть хранит её уже экранированной. update_post_meta()
-	// снимает один слой сам. Если применить wp_slash() один раз,
-	// юникод-последовательности потеряют обратный слэш и русские подписи
-	// превратятся в текст вида «u0412u044b».
+	// Two levels of escaping are not a typo. The plugin reads this meta through
+	// stripslashes(), so it stores it already escaped, and update_post_meta()
+	// strips one level itself. With a single wp_slash() the unicode escape
+	// sequences would lose their backslash and the Russian labels would turn
+	// into literal text like "u0412u044b".
 	update_post_meta( $form_id, '_form_data', wp_slash( wp_slash( wp_json_encode( $items ) ) ) );
 	delete_post_meta( $form_id, '_rendered_form' );
 
