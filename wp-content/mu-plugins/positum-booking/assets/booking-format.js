@@ -92,8 +92,10 @@
 		var button = event.target.closest( '[data-format]' );
 		var chosen = button ? button.getAttribute( 'data-format' ) : null;
 
-		// У слота с единственным форматом выбирать нечего — проставляем сразу.
-		if ( ! chosen && 1 === formats.length ) {
+		// Слот с единственным форматом решается сам. У слота с двумя формат
+		// по умолчанию — первый (очно): так поле никогда не уезжает пустым,
+		// а клиент видит, что выбрано, и может переключить.
+		if ( ! chosen ) {
 			chosen = formats[ 0 ];
 		}
 

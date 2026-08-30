@@ -40,6 +40,26 @@ class Positum_Form_Structure {
 		);
 	}
 
+	/**
+	 * Место консультации — то, что клиент увидит в письме строкой
+	 * «Место консультации: …». Раньше это подставляла условная логика формы
+	 * по выбранной категории; после удаления первого шага её некому запускать,
+	 * поэтому подставляем сами. Тексты сохранены дословно, чтобы письма
+	 * читались ровно как раньше.
+	 */
+	public static function places() {
+		return array(
+			1055 => array( // русская форма
+				Positum_Format_Schedule::OFFICE => 'F.R.Kreutzwaldi 24',
+				Positum_Format_Schedule::ONLINE => 'онлайн-платформа',
+			),
+			2026 => array( // эстонская форма
+				Positum_Format_Schedule::OFFICE => 'F.R.Kreutzwaldi 24',
+				Positum_Format_Schedule::ONLINE => 'veebiplatvorm',
+			),
+		);
+	}
+
 	public static function init() {
 		add_filter( 'jet-engine/forms/field-options', array( __CLASS__, 'only_three_types' ), 10, 2 );
 		add_filter( 'jet-engine/forms/handler/form-data', array( __CLASS__, 'apply_chosen_format' ), 10, 3 );
@@ -90,7 +110,12 @@ class Positum_Form_Structure {
 	}
 
 	/**
-	 * Подставляет парную услугу, если клиент выбрал онлайн.
+	 * Разбирает выбранный формат: подставляет парную услугу для онлайна
+	 * и превращает служебный код в место консультации для письма.
+	 *
+	 * В скрытое поле скрипт кладёт код (office/online) — по нему удобно
+	 * принимать решения. Наружу же должно уйти человекочитаемое место,
+	 * поэтому здесь код заменяется на адрес или название платформы.
 	 */
 	public static function apply_chosen_format( $data, $form, $fields ) {
 
@@ -100,18 +125,47 @@ class Positum_Form_Structure {
 
 		$format = isset( $data[ self::FORMAT_FIELD ] ) ? trim( (string) $data[ self::FORMAT_FIELD ] ) : '';
 
-		if ( Positum_Format_Schedule::ONLINE !== $format ) {
+		if ( ! in_array( $format, array( Positum_Format_Schedule::OFFICE, Positum_Format_Schedule::ONLINE ), true ) ) {
+			// Формат не пришёл — значит слот был доступен в единственном формате
+			// и он уже заложен в самой услуге. Ничего не трогаем.
 			return $data;
 		}
 
 		$pairs   = self::pairs();
 		$service = absint( $data['service_id'] );
 
-		if ( isset( $pairs[ $service ] ) ) {
+		if ( Positum_Format_Schedule::ONLINE === $format && isset( $pairs[ $service ] ) ) {
 			$data['service_id'] = (string) $pairs[ $service ];
 		}
 
+		$data[ self::FORMAT_FIELD ] = self::place_text( $format, self::form_id_of( $data, $form ) );
+
 		return $data;
+	}
+
+	private static function place_text( $format, $form_id ) {
+
+		$places = self::places();
+		$set    = isset( $places[ $form_id ] ) ? $places[ $form_id ] : reset( $places );
+
+		return isset( $set[ $format ] ) ? $set[ $format ] : '';
+	}
+
+	/**
+	 * Язык письма определяется формой, а не текущим языком страницы:
+	 * отправка идёт через общий обработчик, где Polylang уже не у дел.
+	 */
+	private static function form_id_of( $data, $form ) {
+
+		if ( ! empty( $data['_jet_engine_booking_form_id'] ) ) {
+			return absint( $data['_jet_engine_booking_form_id'] );
+		}
+
+		if ( is_object( $form ) && ! empty( $form->ID ) ) {
+			return absint( $form->ID );
+		}
+
+		return absint( $form );
 	}
 
 	/**
