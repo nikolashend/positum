@@ -1,0 +1,14 @@
+# В репозитории всегда LF. Иначе скрипты, отредактированные на Windows,
+# приезжают на сервер с CRLF и bash не находит интерпретатор.
+* text=auto eol=lf
+
+*.sh   text eol=lf
+*.php  text eol=lf
+*.css  text eol=lf
+*.js   text eol=lf
+*.md   text eol=lf
+
+*.png  binary
+*.jpg  binary
+*.gif  binary
+*.mo   binary

@@ -6,6 +6,7 @@
 
 # ...кроме того, что мы пишем руками:
 !.gitignore
+!.gitattributes
 !README.md
 !scripts/
 
