@@ -161,7 +161,12 @@ foreach ( Positum_Form_Structure::form_ids() as $form_id ) {
 		update_post_meta( $form_id, POSITUM_FORM_BACKUP_META, wp_slash( $raw ) );
 	}
 
-	update_post_meta( $form_id, '_form_data', wp_slash( wp_json_encode( $items ) ) );
+	// Два уровня экранирования — не опечатка. Плагин читает мету через
+	// stripslashes(), то есть хранит её уже экранированной. update_post_meta()
+	// снимает один слой сам. Если применить wp_slash() один раз,
+	// последовательности вида В потеряют обратный слэш и русские подписи
+	// превратятся в текст «u0412».
+	update_post_meta( $form_id, '_form_data', wp_slash( wp_slash( wp_json_encode( $items ) ) ) );
 	delete_post_meta( $form_id, '_rendered_form' );
 
 	WP_CLI::success( '  шаг «онлайн / очно» убран' );
