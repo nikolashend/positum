@@ -1,0 +1,43 @@
+.post, .page {
+    margin: 0 0 0;
+}
+
+.ontur-post {
+    padding: 50px 10px 40px 10px;
+}
+
+.entry-meta {
+    padding: 10px 0px 10px 0px;
+}
+
+
+span.nav-title {
+    text-decoration: none;
+    font-size: 12px;
+    margin: 0;
+    color: white;
+    background: #194b5a;
+    padding: 10px;
+    display:none;
+}
+button, input[type="button"], input[type="reset"], input[type="submit"] {
+    border: 1px solid;
+    border-color: #ccc #ccc #bbb;
+    border-radius: 3px;
+    background: #221d1d;
+    color: white;
+    line-height: 1;
+    font-size: 18px;
+    padding: 15px 25px;
+}
+
+.comment-form-comment{
+    font-size: 16px;
+    font-weight: 600;
+}
+
+
+.page-content, .entry-content, .entry-summary {
+    margin: 1.5em 0 0;
+    text-align: justify;
+}

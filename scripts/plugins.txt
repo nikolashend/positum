@@ -1,0 +1,26 @@
+# Снимок версий prod. Обновлять: scripts/plugins-snapshot.sh
+# core 7.1
+name,status,version
+akismet,inactive,5.7.2
+all-in-one-wp-migration,active,7.110
+woo-checkout-field-editor-pro,active,2.1.9
+anywhere-elementor,active,1.2.14
+elementor,active,4.2.3
+elementskit-lite,active,4.0.2
+exclusive-addons-for-elementor,active,2.8.1
+hello,inactive,1.7.2
+jet-appointments-booking,active,2.2.4
+jet-engine,active,3.7.6
+jetsticky-for-elementor,active,1.0.4
+makecommerce,active,4.1.0
+one-click-demo-import,active,3.4.1
+polylang,active,3.8.7
+premium-addons-for-elementor,active,4.11.101
+header-footer-elementor,active,2.9.4
+w3-total-cache,active,2.10.5
+woocommerce,active,11.0.1
+woocommerce-payments,inactive,11.0.1
+wp-file-manager,active,8.0.4
+wp-phpmyadmin-extension,active,5.2.2.01
+automation-by-installatron,must-use,
+advanced-cache.php,dropin,
