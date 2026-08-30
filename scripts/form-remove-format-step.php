@@ -164,8 +164,8 @@ foreach ( Positum_Form_Structure::form_ids() as $form_id ) {
 	// Два уровня экранирования — не опечатка. Плагин читает мету через
 	// stripslashes(), то есть хранит её уже экранированной. update_post_meta()
 	// снимает один слой сам. Если применить wp_slash() один раз,
-	// последовательности вида В потеряют обратный слэш и русские подписи
-	// превратятся в текст «u0412».
+	// юникод-последовательности потеряют обратный слэш и русские подписи
+	// превратятся в текст вида «u0412u044b».
 	update_post_meta( $form_id, '_form_data', wp_slash( wp_slash( wp_json_encode( $items ) ) ) );
 	delete_post_meta( $form_id, '_rendered_form' );
 
