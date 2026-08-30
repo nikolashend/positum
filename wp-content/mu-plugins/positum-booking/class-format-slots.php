@@ -127,14 +127,9 @@ class Positum_Format_Slots {
 	 */
 	private static function decorate_slots_html( $html, $provider ) {
 
-		$labels = array(
-			Positum_Format_Schedule::OFFICE => 'Очно',
-			Positum_Format_Schedule::ONLINE => 'Онлайн',
-		);
-
 		return preg_replace_callback(
 			'~<div\s+class="jet-apb-slot(?P<mods>[^"]*)"(?P<attrs>[^>]*)>(?P<inner>.*?)</div>~s',
-			function ( $match ) use ( $provider, $labels ) {
+			function ( $match ) use ( $provider ) {
 
 				if ( ! preg_match( '~data-slot="(\d+)"~', $match['attrs'], $from )
 					|| ! preg_match( '~data-slot-end="(\d+)"~', $match['attrs'], $to ) ) {
@@ -163,7 +158,7 @@ class Positum_Format_Slots {
 					$badge = sprintf(
 						' <span class="positum-slot-format positum-slot-format--%1$s">%2$s</span>',
 						esc_attr( $formats[0] ),
-						esc_html( $labels[ $formats[0] ] )
+						esc_html( Positum_Format_Schedule::label( $formats[0] ) )
 					);
 				} else {
 					$mods .= ' jet-apb-slot--both-formats';

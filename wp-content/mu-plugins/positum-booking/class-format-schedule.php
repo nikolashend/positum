@@ -51,6 +51,24 @@ class Positum_Format_Schedule {
 	}
 
 	/**
+	 * Подпись формата на языке текущей страницы.
+	 * Сайт двуязычный (Polylang), эстонский — основной.
+	 */
+	public static function label( $format ) {
+
+		$lang = function_exists( 'pll_current_language' ) ? pll_current_language() : '';
+
+		$labels = array(
+			'ru' => array( self::OFFICE => 'Очно', self::ONLINE => 'Онлайн' ),
+			'et' => array( self::OFFICE => 'Kohapeal', self::ONLINE => 'Online' ),
+		);
+
+		$set = isset( $labels[ $lang ] ) ? $labels[ $lang ] : $labels['et'];
+
+		return isset( $set[ $format ] ) ? $set[ $format ] : '';
+	}
+
+	/**
 	 * Название CPT специалистов берём из настроек плагина, а не хардкодим.
 	 */
 	public static function providers_cpt() {

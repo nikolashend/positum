@@ -1,0 +1,67 @@
+/* Формат консультации в календаре бронирования. */
+
+.positum-slot-format {
+	display: inline-block;
+	margin-left: .4em;
+	padding: .1em .5em;
+	border-radius: 2px;
+	font-size: .78em;
+	line-height: 1.5;
+	white-space: nowrap;
+	vertical-align: baseline;
+}
+
+.positum-slot-format--office {
+	background: #f0e6d2;
+	color: #6b4e0f;
+}
+
+.positum-slot-format--online {
+	background: #dbe7f3;
+	color: #1c4a78;
+}
+
+/* Переключатель у слота, доступного в обоих форматах. */
+.positum-format-switch {
+	display: inline-flex;
+	gap: 4px;
+	margin-left: .5em;
+	vertical-align: baseline;
+}
+
+.positum-format-switch__option {
+	appearance: none;
+	border: 1px solid currentColor;
+	border-radius: 2px;
+	background: transparent;
+	padding: .1em .5em;
+	font: inherit;
+	font-size: .78em;
+	line-height: 1.5;
+	cursor: pointer;
+	opacity: .55;
+}
+
+.positum-format-switch__option:hover,
+.positum-format-switch__option:focus-visible {
+	opacity: 1;
+}
+
+.positum-format-switch__option.is-chosen {
+	opacity: 1;
+	font-weight: 600;
+	background: currentColor;
+}
+
+/* Текст на выбранной кнопке — выворотка по цвету самой кнопки. */
+.positum-format-switch__option.is-chosen span {
+	color: #fff;
+	mix-blend-mode: normal;
+}
+
+/* Слот выбран, а формат ещё нет — подсказываем, что нужно решение. */
+.jet-apb-slot--selected.jet-apb-slot--both-formats .positum-format-switch:not(.is-resolved) {
+	outline: 2px solid #c9a227;
+	outline-offset: 2px;
+	border-radius: 3px;
+}
