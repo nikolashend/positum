@@ -16,6 +16,9 @@ define( 'POSITUM_BOOKING_DIR', __DIR__ . '/positum-booking' );
 
 require_once POSITUM_BOOKING_DIR . '/class-plugin-freeze.php';
 require_once POSITUM_BOOKING_DIR . '/class-core-fixes.php';
+require_once POSITUM_BOOKING_DIR . '/class-format-schedule.php';
+require_once POSITUM_BOOKING_DIR . '/class-format-admin.php';
 
 Positum_Plugin_Freeze::init();
 Positum_Core_Fixes::init();
+Positum_Format_Admin::init();
