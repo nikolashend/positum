@@ -27,28 +27,64 @@
 через WP-CLI и весят 1.5 GB. Правило задано в `.gitignore` от обратного —
 игнорируется всё, кроме явно перечисленного.
 
+## Доступ к dev
+
+`https://dev.positum.ee` закрыт HTTP-авторизацией: пользователь `dev`.
+Пароль хранится в `~/domeenid/www.positum.ee/dev/.htpasswd` (в git не попадает).
+Сменить пароль:
+
+```bash
+htpasswd -c ~/domeenid/www.positum.ee/dev/.htpasswd dev
+# если htpasswd недоступен:
+echo "dev:$(openssl passwd -apr1 'НОВЫЙ_ПАРОЛЬ')" > ~/domeenid/www.positum.ee/dev/.htpasswd
+```
+
+Логин администратора WordPress на dev — тот же, что на prod: база скопирована целиком.
+
 ## Цикл работы
 
 ```
-                правим код в dev
-                       |
-                  git commit
-                       |
-                   git push  ------> GitHub
-                       |
-        scripts/deploy-to-prod.sh (на сервере)
-                       |
-                     prod
+   локальный клон  <--- git pull ---  GitHub  --- git pull --->  dev
+   (правим код)     --- git push --->        <--- git push ---
+                                                |
+                                     проверяем на dev.positum.ee
+                                                |
+                                    scripts/deploy-to-prod.sh
+                                                |
+                                              prod
 ```
 
-1. Работаем в `~/domeenid/www.positum.ee/dev` (удобно через VS Code Remote SSH).
-2. Проверяем на https://dev.positum.ee/
-3. `git add … && git commit && git push`
-4. `./scripts/deploy-to-prod.sh` — снимает бэкап, делает `git merge --ff-only`
-   на prod и сбрасывает кэш.
+Править код можно из двух мест — но не из обоих одновременно, иначе разъедутся.
+
+**Вариант А, локально** (эта папка на компьютере):
+
+1. правим код, `git add … && git commit && git push`
+2. `./scripts/pull-to-dev.sh` — подтягивает коммит на dev и сбрасывает кэш
+3. проверяем на https://dev.positum.ee/
+
+**Вариант Б, прямо на сервере** (VS Code Remote SSH в `~/domeenid/www.positum.ee/dev`):
+
+1. правим код, сразу видим результат на https://dev.positum.ee/
+2. `git add … && git commit && git push`
+3. локально не забыть `git pull`
+
+**Выкатка на prod — общая для обоих вариантов:**
+
+```bash
+ssh virt122995@positum.ee
+~/domeenid/www.positum.ee/dev/scripts/deploy-to-prod.sh
+```
+
+Скрипт снимает бэкап базы и кода, делает `git merge --ff-only` и сбрасывает кэш.
+`--ff-only` намеренно: если на prod кто-то правил файлы руками, выкатка
+остановится с ошибкой, а не затрёт эти правки молча.
 
 Чтобы подтянуть в dev свежие данные с боевого сайта:
 `./scripts/sync-prod-to-dev.sh` (загрузки + база + повторная изоляция).
+
+Скрипты лежат только в dev и в локальном клоне. На prod они намеренно
+не выкачиваются (`git sparse-checkout`), чтобы не светить в веб-корне пути
+и имена баз.
 
 ## Важное ограничение: содержимое базы не выкатывается
 
