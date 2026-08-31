@@ -42,10 +42,16 @@ class Positum_Format_Schedule {
 		);
 	}
 
+	/**
+	 * Formats an interval can be set to.
+	 *
+	 * There is no in-person only option on purpose: online is always possible,
+	 * so an interval is either online only or both. A stored "office" value is
+	 * therefore no longer valid and normalize() turns it into "both".
+	 */
 	public static function formats() {
 		return array(
-			self::OFFICE => 'Очно',
-			self::ONLINE => 'Онлайн',
+			self::ONLINE => 'Только онлайн',
 			self::BOTH   => 'Очно и онлайн',
 		);
 	}

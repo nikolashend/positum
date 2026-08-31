@@ -34,11 +34,17 @@ class Positum_Form_Structure {
 	 */
 	public static function pairs() {
 		return array(
-			1060 => 1063, // Индивидуальная, 50 мин, 65 €
-			1049 => 1062, // С ребёнком, 30 мин, 55 €
-			1048 => 1061, // Парная / семейная, 80 мин, 95 €
+			1060 => 1063, // Individual, 50 min, 65 EUR
+			1048 => 1061, // Couple / family, 80 min, 95 EUR
 		);
 	}
+
+	/*
+	 * The 30 minute "with a child" type (1049 / 1062) is deliberately absent:
+	 * the centre stopped offering it. The posts are left in place so that past
+	 * bookings still resolve their titles — returning the type is a matter of
+	 * adding the pair back here.
+	 */
 
 	/**
 	 * Consultation place — what the client sees in the email as the line
