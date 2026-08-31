@@ -26,6 +26,9 @@ class Positum_Format_Schedule {
 
 	const META_KEY = 'positum_format_schedule';
 
+	/** Format overrides for the date ranges of the JetAppointments schedule. */
+	const DATES_META = 'positum_format_dates';
+
 	const OFFICE = 'office';
 	const ONLINE = 'online';
 	const BOTH   = 'both';
@@ -111,6 +114,114 @@ class Positum_Format_Schedule {
 	}
 
 	/**
+	 * Date ranges from the "Working days" section of the JetAppointments
+	 * schedule — the ones where the hours differ from the usual week.
+	 *
+	 * They are read from the plugin meta rather than duplicated: the dates are
+	 * entered once, in the plugin's own editor, and only the format is ours.
+	 *
+	 * @return array List of ['key','name','start','end','from','to'].
+	 */
+	public static function date_ranges( $provider ) {
+
+		$meta  = get_post_meta( absint( $provider ), 'jet_apb_post_meta', true );
+		$rows  = isset( $meta['custom_schedule']['working_days'] ) ? $meta['custom_schedule']['working_days'] : array();
+		$ranges = array();
+
+		if ( ! is_array( $rows ) ) {
+			return $ranges;
+		}
+
+		foreach ( $rows as $row ) {
+
+			if ( empty( $row['startTimeStamp'] ) || empty( $row['endTimeStamp'] ) ) {
+				continue;
+			}
+
+			// Timestamps are in milliseconds and, like the slots, carry wall clock time.
+			$from = intval( $row['startTimeStamp'] ) / 1000;
+			$to   = intval( $row['endTimeStamp'] ) / 1000;
+
+			$ranges[] = array(
+				'key'   => gmdate( 'Y-m-d', $from ) . '_' . gmdate( 'Y-m-d', $to ),
+				'name'  => isset( $row['name'] ) ? (string) $row['name'] : '',
+				'start' => isset( $row['start'] ) ? (string) $row['start'] : gmdate( 'd-m-Y', $from ),
+				'end'   => isset( $row['end'] ) ? (string) $row['end'] : gmdate( 'd-m-Y', $to ),
+				'from'  => gmdate( 'Y-m-d', $from ),
+				'to'    => gmdate( 'Y-m-d', $to ),
+			);
+		}
+
+		return $ranges;
+	}
+
+	/**
+	 * @return array Range key => format, for ranges with an explicit format.
+	 */
+	public static function get_date_formats( $provider ) {
+
+		$stored = get_post_meta( absint( $provider ), self::DATES_META, true );
+		$clean  = array();
+
+		if ( ! is_array( $stored ) ) {
+			return $clean;
+		}
+
+		foreach ( $stored as $key => $format ) {
+			if ( array_key_exists( $format, self::formats() ) ) {
+				$clean[ (string) $key ] = $format;
+			}
+		}
+
+		return $clean;
+	}
+
+	public static function save_date_formats( $provider, $raw ) {
+
+		$provider = absint( $provider );
+		$clean    = array();
+
+		foreach ( (array) $raw as $key => $format ) {
+			if ( array_key_exists( $format, self::formats() ) ) {
+				$clean[ sanitize_text_field( (string) $key ) ] = $format;
+			}
+		}
+
+		if ( ! $clean ) {
+			delete_post_meta( $provider, self::DATES_META );
+			return array();
+		}
+
+		update_post_meta( $provider, self::DATES_META, $clean );
+
+		return $clean;
+	}
+
+	/**
+	 * Format set for a date by an explicit range override, if there is one.
+	 *
+	 * @return string office|online|both|'' — empty means no override.
+	 */
+	private static function format_for_date( $provider, $timestamp ) {
+
+		$overrides = self::get_date_formats( $provider );
+
+		if ( ! $overrides ) {
+			return '';
+		}
+
+		$day = gmdate( 'Y-m-d', $timestamp );
+
+		foreach ( self::date_ranges( $provider ) as $range ) {
+			if ( isset( $overrides[ $range['key'] ] ) && $day >= $range['from'] && $day <= $range['to'] ) {
+				return $overrides[ $range['key'] ];
+			}
+		}
+
+		return '';
+	}
+
+	/**
 	 * @return array The specialist's format map, normalised.
 	 */
 	public static function get( $provider ) {
@@ -153,6 +264,16 @@ class Positum_Format_Schedule {
 	 * @return array List of self::OFFICE and/or self::ONLINE. Empty — unavailable.
 	 */
 	public static function formats_for_slot( $provider, $from, $to ) {
+
+		// A date range wins over the usual week: it is the more specific answer,
+		// and it is exactly what a holiday or a temporary schedule is for.
+		$override = self::format_for_date( $provider, $from );
+
+		if ( $override ) {
+			return self::BOTH === $override
+				? array( self::OFFICE, self::ONLINE )
+				: array( $override );
+		}
 
 		$map = self::get( $provider );
 

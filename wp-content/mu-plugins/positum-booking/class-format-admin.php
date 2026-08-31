@@ -77,11 +77,70 @@ class Positum_Format_Admin {
 			<?php endforeach; ?>
 		</div>
 
+		<?php self::date_ranges_section( $post->ID, $formats ); ?>
+
 		<script type="text/template" id="pfs-row-template">
 			<?php self::row( '__DAY__', '__INDEX__', array( 'from' => '09:00', 'to' => '17:00', 'format' => Positum_Format_Schedule::BOTH ), $formats ); ?>
 		</script>
 		<?php
 		self::script();
+	}
+
+	/**
+	 * Format for the date ranges of the JetAppointments schedule.
+	 *
+	 * The dates themselves stay in the plugin editor — a holiday is entered
+	 * there once, together with its hours — and only the format is picked here.
+	 */
+	private static function date_ranges_section( $provider, $formats ) {
+
+		$ranges  = Positum_Format_Schedule::date_ranges( $provider );
+		$chosen  = Positum_Format_Schedule::get_date_formats( $provider );
+		?>
+		<h4 class="pfs-heading">Отдельные периоды</h4>
+
+		<?php if ( ! $ranges ) : ?>
+			<p class="pfs-intro">
+				Периодов с особыми часами пока нет. Добавьте их в расписании специалиста —
+				раздел «Working days», где задаются даты с часами, отличными от обычной недели.
+				После сохранения они появятся здесь, и для каждого можно будет выбрать формат.
+			</p>
+			<?php return; ?>
+		<?php endif; ?>
+
+		<p class="pfs-intro">
+			Для каждого периода с особыми часами можно задать свой формат — например,
+			на время отпуска принимать только онлайн. Если формат не выбран, действует
+			обычная недельная разметка выше.
+		</p>
+
+		<table class="pfs-ranges">
+			<?php foreach ( $ranges as $index => $range ) : ?>
+				<tr>
+					<td class="pfs-ranges__dates">
+						<?php echo esc_html( $range['start'] ); ?>
+						<?php if ( $range['end'] !== $range['start'] ) : ?>
+							– <?php echo esc_html( $range['end'] ); ?>
+						<?php endif; ?>
+					</td>
+					<td class="pfs-ranges__name"><?php echo esc_html( $range['name'] ); ?></td>
+					<td>
+						<input type="hidden" name="positum_format_dates[<?php echo esc_attr( $index ); ?>][key]"
+						       value="<?php echo esc_attr( $range['key'] ); ?>">
+						<select name="positum_format_dates[<?php echo esc_attr( $index ); ?>][format]">
+							<option value="">Как обычно</option>
+							<?php foreach ( $formats as $value => $label ) : ?>
+								<option value="<?php echo esc_attr( $value ); ?>"
+									<?php selected( isset( $chosen[ $range['key'] ] ) ? $chosen[ $range['key'] ] : '', $value ); ?>>
+									<?php echo esc_html( $label ); ?>
+								</option>
+							<?php endforeach; ?>
+						</select>
+					</td>
+				</tr>
+			<?php endforeach; ?>
+		</table>
+		<?php
 	}
 
 	private static function row( $day, $index, $interval, $formats ) {
@@ -195,11 +254,34 @@ class Positum_Format_Admin {
 		// The nonce is here but no intervals — they were all removed by hand.
 		// Quick edit and REST saves never reach this point: they carry no nonce
 		// of ours, and the function returned above.
+		self::save_date_formats( $post_id );
+
 		if ( ! isset( $_POST['positum_format'] ) ) {
 			Positum_Format_Schedule::save( $post_id, array() );
 			return;
 		}
 
 		Positum_Format_Schedule::save( $post_id, wp_unslash( $_POST['positum_format'] ) );
+	}
+
+	/**
+	 * Turns the rows of the date range table into a "range key => format" map.
+	 * Rows left at "as usual" carry an empty format and simply drop out.
+	 */
+	private static function save_date_formats( $post_id ) {
+
+		$rows   = isset( $_POST['positum_format_dates'] ) ? wp_unslash( $_POST['positum_format_dates'] ) : array();
+		$chosen = array();
+
+		foreach ( (array) $rows as $row ) {
+
+			if ( empty( $row['key'] ) || empty( $row['format'] ) ) {
+				continue;
+			}
+
+			$chosen[ $row['key'] ] = $row['format'];
+		}
+
+		Positum_Format_Schedule::save_date_formats( $post_id, $chosen );
 	}
 }
