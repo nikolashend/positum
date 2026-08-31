@@ -66,6 +66,22 @@ class Positum_Form_Structure {
 		);
 	}
 
+	/**
+	 * The services CPT name comes from the plugin settings, not hardcoded.
+	 */
+	public static function services_cpt() {
+
+		if ( class_exists( '\JET_APB\Plugin' ) ) {
+			$cpt = \JET_APB\Plugin::instance()->settings->get( 'services_cpt' );
+
+			if ( ! empty( $cpt ) ) {
+				return $cpt;
+			}
+		}
+
+		return 'services';
+	}
+
 	public static function init() {
 		add_filter( 'jet-engine/forms/field-options', array( __CLASS__, 'only_three_types' ), 10, 2 );
 		add_filter( 'jet-engine/forms/handler/form-data', array( __CLASS__, 'apply_chosen_format' ), 10, 3 );
